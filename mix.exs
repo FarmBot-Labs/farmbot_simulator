@@ -7,7 +7,7 @@ defmodule FarmbotSimulator.Mixfile do
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     compilers: [:elixir_make] ++ Mix.compilers,
+     compilers: Mix.compilers,
      description: description(),
      package: package(),
      name: "Farmbot Simulator",
