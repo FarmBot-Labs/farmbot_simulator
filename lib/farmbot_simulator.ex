@@ -7,9 +7,10 @@ defmodule FarmbotSimulator do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
     children = [
+      # worker(BotSimulator, [], [restart: :permanent]),
       worker(FirmwareSimulator, [], [restart: :permanent])
     ]
-    opts = [strategy: :one_for_one, name: Blah.Supervisor]
+    opts = [strategy: :one_for_all, name: Blah.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end
