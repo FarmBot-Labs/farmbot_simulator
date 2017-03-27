@@ -38,9 +38,12 @@ enum MeshBufferPositions
 class Mesh
 {
 public:
-    Mesh(const std::string& fileName);
+	// Create a mesh from a file by its name.
+  Mesh(const std::string& fileName);
+	// Create a mesh object from a Vertex, number of vertices, indices, and number of indices.
 	Mesh(Vertex* vertices, unsigned int numVertices, unsigned int* indices, unsigned int numIndices);
 
+	// Draw the mesh.
 	void Draw();
 
 	virtual ~Mesh();
@@ -50,7 +53,7 @@ private:
 	void operator=(const Mesh& mesh) {}
 	Mesh(const Mesh& mesh) {}
 
-    void InitMesh(const IndexedModel& model);
+  void InitMesh(const IndexedModel& model);
 
 	GLuint m_vertexArrayObject;
 	GLuint m_vertexArrayBuffers[NUM_BUFFERS];
