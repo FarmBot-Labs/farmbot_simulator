@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
 		display.SwapBuffers();
 		SDL_Delay(1);
-		counter += 0.001f;
+		counter += 0.0001f;
 	}
 
 	return 0;

@@ -11,17 +11,18 @@ defmodule FarmbotSimulator.Mixfile do
      deps: deps()]
   end
 
-  # Configuration for the OTP application
-  #
-  # Type "mix help compile.app" for more information
   def application do
-    # Specify extra applications you'll use from Erlang/Elixir
-    [extra_applications: [:logger]]
+    [ mod: {FarmbotSimulator, []},
+      extra_applications: [
+      :logger,
+      :nerves_uart
+    ]]
   end
 
   defp deps do
     [
-      {:elixir_make, "~> 0.4", runtime: false}
+      {:elixir_make, "~> 0.4", runtime: false},
+      {:nerves_uart, "~> 0.1.2"}
     ]
   end
 end

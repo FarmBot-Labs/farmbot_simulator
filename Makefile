@@ -49,7 +49,6 @@ all: debug release
 clean: clean_debug clean_release
 
 before_debug:
-	test -d bin/Debug || mkdir -p bin/Debug
 	test -d $(OBJDIR_DEBUG) || mkdir -p $(OBJDIR_DEBUG)
 
 after_debug:
@@ -82,11 +81,9 @@ $(OBJDIR_DEBUG)/display.o: src/display.cpp
 
 clean_debug:
 	rm -f $(OBJ_DEBUG) $(OUT_DEBUG)
-	rm -rf bin/Debug
 	rm -rf $(OBJDIR_DEBUG)
 
 before_release:
-	test -d bin/Release || mkdir -p bin/Release
 	test -d $(OBJDIR_RELEASE) || mkdir -p $(OBJDIR_RELEASE)
 
 after_release:
@@ -119,7 +116,6 @@ $(OBJDIR_RELEASE)/display.o: src/display.cpp
 
 clean_release:
 	rm -f $(OBJ_RELEASE) $(OUT_RELEASE)
-	rm -rf bin/Release
 	rm -rf $(OBJDIR_RELEASE)
 
 .PHONY: before_debug after_debug clean_debug before_release after_release clean_release
