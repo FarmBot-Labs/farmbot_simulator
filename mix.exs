@@ -62,7 +62,7 @@ defmodule FarmbotSimulator.Mixfile do
       maintainers: ["Connor Rigby"],
       links: %{
         "GitHub" => "https://github.com/FarmBot-Labs/farmbot_simulator",
-        "Docs" => ""
+        "Docs" => "https://hexdocs.pm/farmbot_simulator/"
       }
     ]
   end
