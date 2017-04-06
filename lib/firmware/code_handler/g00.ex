@@ -21,6 +21,8 @@ defmodule Firmware.CodeHandler.G00 do
 
   defp to_bool(1), do: true
   defp to_bool(0), do: false
+  defp to_bool("1"), do: true
+  defp to_bool("0"), do: false
 
   defp maybe_allow_neg(rval, true), do: rval
   defp maybe_allow_neg(_, false), do: 0
