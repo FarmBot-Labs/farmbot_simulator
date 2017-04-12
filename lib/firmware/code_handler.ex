@@ -4,34 +4,32 @@ defmodule Firmware.CodeHandler do
   """
 
   require Logger
-  @callback run([binary]) :: binary | :noreply | [binary] | nil
+
+  @type context :: FirmwareSimulator.state
+
+  @callback run([binary], context) :: binary | :noreply | [binary] | nil
 
   # Thanks past me.
-  gcode =
-  "lib/firmware/code_handler/"
-  |> File.ls!
-  |> Enum.reduce([], fn(file_name, acc) ->
-    case String.split(file_name, ".ex") do
-      [file_name, ""] ->
-        # IO.puts "defining #{file_name}"
-        mod = Module.concat Firmware.CodeHandler,
-          Macro.camelize(file_name)
-        [{String.to_atom(file_name), mod} | acc]
-      _ -> acc
-    end
-  end)
+  # _gcode =
+  # "lib/firmware/code_handler/"
+  # |> File.ls!
+  # |> Enum.reduce([], fn(file_name, acc) ->
+  #   case String.split(file_name, ".ex") do
+  #     [file_name, ""] ->
+  #       # IO.puts "defining #{file_name}"
+  #       mod = Module.concat Firmware.CodeHandler,
+  #         Macro.camelize(file_name)
+  #       [{String.to_atom(file_name), mod} | acc]
+  #     _ -> acc
+  #   end
+  # end)
 
-  # I don't think this is actually needed.
-  for {fun, module} <- gcode do
-    defdelegate unquote(fun)(args), to: module, as: :run
-  end
-
-  @spec handle_code([binary]) :: nil | :noreply | binary | [binary]
-  def handle_code([code | args]) do
+  @spec handle_code([binary], context) :: nil | :noreply | binary | [binary]
+  def handle_code([code | args], context) do
     mod = Module.concat [__MODULE__, code]
     try do
       Logger.debug "Doing: #{code}"
-      apply(mod, :run, [args])
+      apply(mod, :run, [args, context])
     rescue
       e ->
         Logger.error("Error doing #{code} #{inspect e}")

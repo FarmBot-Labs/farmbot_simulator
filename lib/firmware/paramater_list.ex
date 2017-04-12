@@ -2,31 +2,40 @@ defmodule Firmware.ParamaterList do
   @moduledoc """
   automatically generated from the paramater list text file.
   """
+  require Logger
 
-  @params File.read!("priv/paramater_list.txt")
+  code_dir = "#{:code.priv_dir(Mix.Project.config[:app])}"
+
+  @params File.read!("#{code_dir}/paramater_list.txt")
     |> String.replace("\t", "")
     |> String.replace("= ", "=")
     |> String.replace(" =", "=")
+    |> String.replace(" = ", "=")
     |> String.replace(",", "")
     |> String.trim()
     |> String.split("\n")
     |> Enum.map(fn(str) ->
       [param | [int]] = String.split(str, "=")
+      param = String.trim(param)
+      IO.puts "Defining #{param}: #{int}"
       {param, String.to_integer(int)}
     end)
     |> Map.new
 
-  @defaults File.read!("priv/paramater_defaults.txt")
+  @defaults File.read!("#{code_dir}/paramater_defaults.txt")
     |> String.replace("\t", "")
     |> String.replace(" ", "")
     |> String.replace("= ", "=")
     |> String.replace(" =", "=")
+    |> String.replace(" = ", "=")
     |> String.replace(";", "")
     |> String.trim()
     |> String.split("\n")
     |> Enum.map(fn(str) ->
       [param | [int]] = String.split(str, "=")
-      {String.trim(param, "_DEFAULT"), String.to_integer(int)}
+      param_default = String.trim(param, "_DEFAULT") |> String.trim()
+      IO.puts "Setting default #{param_default}: #{int}"
+      {param_default, String.to_integer(int)}
     end)
     |> Map.new
 
@@ -50,5 +59,10 @@ defmodule Firmware.ParamaterList do
   @doc """
   gets the default value for given key
   """
-  def get_default(key), do: Map.get(defaults(), key, -1)
+  def get_default(key), do: Map.get(defaults(), key, nil) || no_default(key)
+
+  defp no_default(key) do
+    Logger.warn "No default for: #{key}"
+    -1
+  end
 end

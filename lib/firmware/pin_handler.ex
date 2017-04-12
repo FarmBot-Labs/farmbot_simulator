@@ -1,16 +1,32 @@
 defmodule Firmware.PinHandler do
+  @moduledoc """
+    Handles Pin States.
+  """
   use GenServer
-  def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+
+  @doc """
+    Starts a Pin Handler.
+  """
+  def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, [], opts)
+
+  @doc """
+    Sets a value for a pin.
+  """
+  def set_pin_value(handler, pin, value) do
+    GenServer.call(handler, {:set_pin_value, pin, value})
+  end
+
+  @doc """
+    Gets the current value for a pin.
+  """
+  def get_pin_value(handler, pin) do
+    GenServer.call(handler, {:get_pin_value, pin})
+  end
+
+  # GenServer Stuff
+
   def init([]) do
     {:ok, %{}}
-  end
-
-  def set_pin_value(pin, value) do
-    GenServer.call(__MODULE__, {:set_pin_value, pin, value})
-  end
-
-  def get_pin_value(pin) do
-    GenServer.call(__MODULE__, {:get_pin_value, pin})
   end
 
   def handle_call({:set_pin_value, pin, value}, _, state) do

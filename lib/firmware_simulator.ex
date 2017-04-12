@@ -6,23 +6,47 @@ defmodule FirmwareSimulator do
   use GenServer
   require Logger
   alias Nerves.UART
+  alias Firmware.{ParamaterHandler, PositionHandler, PinHandler, CodeHandler}
 
   @tty "/dev/tnt0"
 
-  def start_link do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
-  end
+  @type state :: %{
+    nerves: pid,
+    param_handler: pid,
+    position_handler: pid,
+    pin_handler: pid
+  }
 
-  def init([]) do
-    Logger.info "Starting Firmware Simulator"
+  @doc """
+    Start the simulated Farmbot Simulator.
+  """
+  def start_link(tty \\ @tty, opts \\ []),
+    do: GenServer.start_link(__MODULE__, tty, opts)
+
+  @doc """
+    Writes a string to the simulators Serial Line.
+  """
+  def write(sim, str), do: GenServer.call(sim, {:write, str})
+
+  @doc """
+    Stops a simulator.
+  """
+  def stop(sim, reason \\ :normal), do: GenServer.stop(sim, reason)
+
+  # GenServer Stuff
+
+  def init(tty) do
+    Logger.info "Starting Firmware Simulator: #{tty}"
+    Logger.info "You can connect your device to: /dev/tnt1"
     {:ok, nerves} = UART.start_link()
-    {:ok, param_handler} = Firmware.ParamaterHandler.start_link()
-    {:ok, pos_handler} = Firmware.PositionHandler.start_link()
-    {:ok, pin_handler} = Firmware.PinHandler.start_link()
-    :ok = UART.open(nerves, @tty,
-      [active: true, speed: 115200,
-      framing: {Nerves.UART.Framing.Line, separator: "\r\n"}
-      ])
+    {:ok, param_handler} = ParamaterHandler.start_link()
+    {:ok, pos_handler} = PositionHandler.start_link()
+    {:ok, pin_handler} = PinHandler.start_link()
+    :ok = UART.open nerves, tty,
+      [
+        active: true, speed: 115200,
+        framing: {UART.Framing.Line, separator: "\r\n"}
+      ]
     {:ok, %{
       nerves: nerves,
       param_handler: param_handler,
@@ -31,11 +55,11 @@ defmodule FirmwareSimulator do
       }}
   end
 
-  def handle_info({:nerves_uart, @tty, str}, state) do
+  def handle_info({:nerves_uart, _tty, str}, state) do
     cmd = String.split(str, " ")
     qcode = find_qcode(cmd)
     do_write(state.nerves, "R01 #{qcode}")
-    reply = Firmware.CodeHandler.handle_code(cmd)
+    reply = CodeHandler.handle_code(cmd, state)
     case reply do
       # if we just have one binary, write it.
       blerp when is_binary(blerp) ->
@@ -67,9 +91,9 @@ defmodule FirmwareSimulator do
     {:reply, :ok, state}
   end
 
-  def terminate(_reason, state) do
-    UART.stop(state.nerves)
-  end
+  def terminate(_reason, state), do: UART.stop(state.nerves)
+
+  # Private
 
   @spec do_write(pid, binary) :: :ok | {:error, term}
   defp do_write(nerves, str), do: UART.write(nerves, str)
@@ -82,19 +106,11 @@ defmodule FirmwareSimulator do
     do_write_multi(nerves, rest)
   end
 
-  defp find_qcode([]), do: "Q69"
+  defp find_qcode([]), do: "Q#{Enum.random(0..99)}"
   defp find_qcode([head | tail]) do
     case head do
       "Q" <> _code -> head
       _ -> find_qcode(tail)
     end
-  end
-
-  def write(str) do
-    GenServer.call(__MODULE__, {:write, str})
-  end
-
-  def stop(reason \\ :normal) do
-    GenServer.stop(__MODULE__, reason)
   end
 end

@@ -1,17 +1,28 @@
 defmodule Firmware.PositionHandler do
+  @moduledoc """
+    Handles Current Position.
+  """
   use GenServer
 
-  def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  @doc """
+    Starts a Position Handler.
+  """
+  def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, [], opts)
 
-  def init([]) do
-    {:ok, {0,0,0}}
-  end
+  @doc """
+    Sets bot position
+  """
+  def set_pos(handler, position)
+  def set_pos(han, {_x, _y, _z} = p), do: GenServer.call(han, {:set_pos, p})
 
-  def set_pos(pos), do: GenServer.call(__MODULE__, {:set_pos, pos})
+  @doc """
+    Gets the current position.
+  """
+  def get_pos(handler), do: GenServer.call(handler, :get_pos)
 
-  def get_pos, do: GenServer.call(__MODULE__, :get_pos)
+  # GenServer Stuff
 
+  def init([]), do: {:ok, {0,0,0}}
   def handle_call(:get_pos, _, pos), do: {:reply, pos, pos}
-
   def handle_call({:set_pos, pos}, _, _), do: {:reply, pos, pos}
 end
