@@ -47,7 +47,10 @@ defmodule FirmwareSimulator do
         active: true, speed: 115200,
         framing: {UART.Framing.Line, separator: "\r\n"}
       ]
+    timer = Process.send_after(self(), :idle_timer, 6000)
     {:ok, %{
+      q: nil,
+      timer: timer,
       nerves: nerves,
       param_handler: param_handler,
       position_handler: pos_handler,
@@ -56,6 +59,9 @@ defmodule FirmwareSimulator do
   end
 
   def handle_info({:nerves_uart, _tty, str}, state) do
+    if state.timer do
+      Process.cancel_timer(state.timer)
+    end
     cmd = String.split(str, " ")
     qcode = find_qcode(cmd)
     do_write(state.nerves, "R01 #{qcode}")
@@ -77,8 +83,16 @@ defmodule FirmwareSimulator do
         Logger.warn("unhandled command: #{str}")
     end
 
+    timer = Process.send_after(self(), :idle_timer, 6000)
+
     do_write(state.nerves, "R02 #{qcode}")
-    {:noreply, state}
+    {:noreply, %{state | timer: timer, q: qcode}}
+  end
+
+  def handle_info(:idle_timer, state) do
+    do_write(state.nerves, "R00 Q#{state.q || 0}")
+    timer = Process.send_after(self(), :idle_timer, 6000)
+    {:noreply, %{state | timer: timer}}
   end
 
   def handle_info(info, state) do
