@@ -8,7 +8,6 @@ defmodule FirmwareSimulator do
   alias Nerves.UART
   alias Firmware.{ParamaterHandler, PositionHandler, PinHandler, CodeHandler}
 
-  @tty "/dev/tnt0"
 
   @type state :: %{
     nerves: pid,
@@ -20,7 +19,7 @@ defmodule FirmwareSimulator do
   @doc """
     Start the simulated Farmbot Simulator.
   """
-  def start_link(tty \\ @tty, opts \\ []),
+  def start_link(tty, opts \\ []),
     do: GenServer.start_link(__MODULE__, tty, opts)
 
   @doc """
@@ -33,20 +32,37 @@ defmodule FirmwareSimulator do
   """
   def stop(sim, reason \\ :normal), do: GenServer.stop(sim, reason)
 
-  # GenServer Stuff
+  defp wait_for_connect(nerves, tty) do
+    case UART.write(nerves, "R00 Q0") do
+      {:error, :einval} ->
+        UART.close(nerves)
+        :ok = open_tty(nerves, tty)
+        IO.puts "waiting for connection.."
+        Process.sleep(2000)
+        wait_for_connect(nerves, tty)
+      :ok -> :ok
+    end
+  end
 
-  def init(tty) do
-    Logger.info "Starting Firmware Simulator: #{tty}"
-    Logger.info "You can connect your device to: /dev/tnt1"
-    {:ok, nerves} = UART.start_link()
-    {:ok, param_handler} = ParamaterHandler.start_link()
-    {:ok, pos_handler} = PositionHandler.start_link()
-    {:ok, pin_handler} = PinHandler.start_link()
-    :ok = UART.open nerves, tty,
+  defp open_tty(nerves, tty) do
+    UART.open nerves, tty,
       [
         active: true, speed: 115200,
         framing: {UART.Framing.Line, separator: "\r\n"}
       ]
+  end
+
+  # GenServer Stuff
+
+  def init(tty) do
+    Logger.info "Starting Firmware Simulator: #{tty}"
+    Logger.info "You can connect your device to: #{tty}"
+    {:ok, nerves} = UART.start_link()
+    {:ok, param_handler} = ParamaterHandler.start_link()
+    {:ok, pos_handler} = PositionHandler.start_link()
+    {:ok, pin_handler} = PinHandler.start_link()
+    :ok = open_tty(nerves, tty)
+    :ok = wait_for_connect(nerves, tty)
     timer = Process.send_after(self(), :idle_timer, 6000)
     {:ok, %{
       q: nil,
@@ -58,7 +74,8 @@ defmodule FirmwareSimulator do
       }}
   end
 
-  def handle_info({:nerves_uart, _tty, str}, state) do
+  def handle_info({:nerves_uart, _tty, str}, state) when is_binary(str) do
+    IO.puts "reading #{str}"
     if state.timer do
       Process.cancel_timer(state.timer)
     end
@@ -89,8 +106,23 @@ defmodule FirmwareSimulator do
     {:noreply, %{state | timer: timer, q: qcode}}
   end
 
+  def handle_info({:nerves_uart, tty, {:error, :ebadf}}, state) when is_binary(tty)  do
+    UART.close(state.nerves)
+    :ok = open_tty(state.nerves, tty)
+    {:noreply, state}
+  end
+
+  def handle_info({:nerves_uart, nil, _data}, state), do: {:noreply, state}
+
+  def handle_info({:nerves_uart, tty, data}, state)  do
+    Logger.warn "Farmbot Simulator got unhandled data: #{inspect data} on tty: #{tty}"
+    {:noreply, state}
+  end
+
+
   def handle_info(:idle_timer, state) do
-    do_write(state.nerves, "R00 Q#{state.q || 0}")
+    IO.puts "got idle timer"
+    :ok = do_write(state.nerves, "R00 Q#{state.q || 0}")
     timer = Process.send_after(self(), :idle_timer, 6000)
     {:noreply, %{state | timer: timer}}
   end
@@ -100,7 +132,7 @@ defmodule FirmwareSimulator do
     {:noreply, state}
   end
 
-  def handle_call({:write, str}, _, state) do
+  def handle_call({:write, str}, _, state) when is_binary(str) do
     :ok = do_write(state.nerves, str)
     {:reply, :ok, state}
   end
@@ -110,7 +142,12 @@ defmodule FirmwareSimulator do
   # Private
 
   @spec do_write(pid, binary) :: :ok | {:error, term}
-  defp do_write(nerves, str), do: UART.write(nerves, str)
+  defp do_write(nerves, str) when is_pid(nerves) and is_binary(str) do
+    IO.puts "writing #{str}"
+    # require IEx
+    # IEx.pry
+    UART.write(nerves, str)
+  end
 
   @spec do_write_multi(pid, [binary]) :: :ok | no_return
   defp do_write_multi(_, []), do: :ok
