@@ -75,7 +75,7 @@ defmodule FirmwareSimulator do
   end
 
   def handle_info({:nerves_uart, _tty, str}, state) when is_binary(str) do
-    IO.puts "reading #{str}"
+    # IO.puts "reading #{str}"
     if state.timer do
       Process.cancel_timer(state.timer)
     end
@@ -121,7 +121,7 @@ defmodule FirmwareSimulator do
 
 
   def handle_info(:idle_timer, state) do
-    IO.puts "got idle timer"
+    # IO.puts "got idle timer"
     :ok = do_write(state.nerves, "R00 Q#{state.q || 0}")
     timer = Process.send_after(self(), :idle_timer, 6000)
     {:noreply, %{state | timer: timer}}
@@ -143,7 +143,7 @@ defmodule FirmwareSimulator do
 
   @spec do_write(pid, binary) :: :ok | {:error, term}
   defp do_write(nerves, str) when is_pid(nerves) and is_binary(str) do
-    IO.puts "writing #{str}"
+    # IO.puts "writing #{str}"
     # require IEx
     # IEx.pry
     UART.write(nerves, str)
