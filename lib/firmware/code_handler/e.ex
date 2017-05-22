@@ -1,4 +1,4 @@
-defmodule Firmware.CodeHandler.F21 do
+defmodule Firmware.CodeHandler.E do
   @moduledoc false
   @behaviour Firmware.CodeHandler
 
